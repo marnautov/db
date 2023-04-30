@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.4.0
+ * version 0.4.3
  */
 class PDOAdapter implements DbInterface
 {
@@ -118,7 +118,7 @@ class PDOAdapter implements DbInterface
             }
             $result = $newRresult;
         } else {
-            if (isset($v['ARRAY_VALUE'])) $result = $v['ARRAY_VALUE'];
+            if (isset($result['ARRAY_VALUE'])) $result = $result['ARRAY_VALUE'];
         }
 
         return $result;
