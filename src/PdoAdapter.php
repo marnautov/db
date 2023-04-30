@@ -28,24 +28,33 @@ class PDOAdapter implements DbInterface
     }
 
 
+    public function query($sql, $vars = array())
+    {
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($vars);
+
+        return $stmt;
+    }
+
+
     public function row($sql, $vars = array())
     {
-        return $this->query($sql, $vars, 'FETCH_ASSOC');
+        return $this->execute($sql, $vars, 'FETCH_ASSOC');
     }
 
     public function rows($sql, $vars = array())
     {
-        return $this->query($sql, $vars, 'FETCH_ALL_ASSOC');
+        return $this->execute($sql, $vars, 'FETCH_ALL_ASSOC');
     }
 
     // ранее result
     public function col($sql, $vars = array())
     {
-        return $this->query($sql, $vars, 'FETCH_COLUMN');
+        return $this->execute($sql, $vars, 'FETCH_COLUMN');
     }
 
 
-    private function query($sql, $vars, $type)
+    private function execute($sql, $vars, $type)
     {
 
         if ($this->cacheTimeout && $this->cache) {
@@ -117,7 +126,7 @@ class PDOAdapter implements DbInterface
         $values = implode(', ', $set['values']);
 
         $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$values})";
-        var_dump($sql);
+        // var_dump($sql);
         $stmt = $this->db->prepare($sql);
         foreach ($set['binds'] as $key => $value) {
 
