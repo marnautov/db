@@ -1,0 +1,16 @@
+{
+    "name": "amxm/db",
+    "description": "DbAdapters",
+    "autoload": {
+        "psr-4": {
+            "Amxm\\Db\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "maxim",
+            "email": "amxm@ya.ru"
+        }
+    ],
+    "require": {}
+}
