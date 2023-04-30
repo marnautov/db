@@ -42,7 +42,6 @@ class DbAdapterTest extends TestCase
         ]);
         $this->assertGreaterThan(0, $insertId);
 
-
         $row = $this->db->row("SELECT * FROM tests WHERE 1 LIMIT 1");
         $this->assertIsArray($row);
 
@@ -59,7 +58,37 @@ class DbAdapterTest extends TestCase
         $this->assertEquals($rows[1]['id'], $insertId);
 
 
+        $rows = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE 1");
+        $this->assertEquals($rows[$insertId], 'hello');
+
+        $row = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE id=?", [$insertId]);
+        $this->assertEquals($row[$insertId], 'hello');
+
+        $rows = array();
+        $this->db->query("SELECT * from tests WHERE status=?",['active']);
+        while($row = $this->db->fetch()){
+            $row['info'] = $this->db->row("SELECT NOW() as date,'love'");
+            $rows[] = $row;
+        }
+        $this->assertEquals(count($rows), 2);
+
+        $this->assertEquals($rows[1]['info']['love'], 'love');
+
     }
+
+
+
+    // public function testInserts()
+    // {
+
+    //     $this->db->insert('tests', [
+    //         'title' => 'hello start',
+    //         'status' => 'active',
+    //         'date' => $this->db->now(),
+    //         'date2' => (object)'NOW()',
+    //     ]);
+
+    // }
 
 
     protected function tearDown(): void

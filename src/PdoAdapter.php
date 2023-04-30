@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.1 (init release)
+ * version 0.2 (+fetch)
  */
 class PDOAdapter implements DbInterface
 {
@@ -13,10 +13,12 @@ class PDOAdapter implements DbInterface
     private $db;
     private $cache;
     private $cacheTimeout;
+    private $lastStmt;
 
     public function __construct(PDO $db, $cache = false)
     {
         $this->db = $db;
+        $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         if ($cache) $this->cache = $cache;
         $this->cacheTimeout = false;
     }
@@ -28,16 +30,18 @@ class PDOAdapter implements DbInterface
     }
 
 
-    public function query($sql, $vars = array())
+    public function query(string $sql, array $vars = array())
     {
         $stmt = $this->db->prepare($sql);
         $stmt->execute($vars);
+
+        $this->lastStmt = $stmt;
 
         return $stmt;
     }
 
 
-    public function row($sql, $vars = array())
+    public function row(string $sql, array $vars = array())
     {
         return $this->execute($sql, $vars, 'FETCH_ASSOC');
     }
@@ -47,7 +51,6 @@ class PDOAdapter implements DbInterface
         return $this->execute($sql, $vars, 'FETCH_ALL_ASSOC');
     }
 
-    // ранее result
     public function col($sql, $vars = array())
     {
         return $this->execute($sql, $vars, 'FETCH_COLUMN');
@@ -68,11 +71,13 @@ class PDOAdapter implements DbInterface
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute($vars);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $result = $this->formatArrayBlocks($sql, $result, false);
                 break;
             case 'FETCH_ALL_ASSOC':
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute($vars);
                 $result =  $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $result = $this->formatArrayBlocks($sql, $result, true);
                 break;
             case 'FETCH_COLUMN':
                 $stmt = $this->db->prepare($sql);
@@ -84,20 +89,6 @@ class PDOAdapter implements DbInterface
         }
 
 
-        if (strstr($sql, 'ARRAY_KEY') !== false || strstr($sql, 'ARRAY_VALUE') !== false) {
-            $newResult = array();
-            foreach ($result as $k => $v) {
-                if (isset($v['ARRAY_KEY'])) {
-                    $keyName = $v['ARRAY_KEY'];
-                    unset($v['ARRAY_KEY']);
-                    $newResult[$keyName]=(isset($v['ARRAY_VALUE'])?$v['ARRAY_VALUE']:$v);
-                } else {
-                    $newResult[]=(isset($v['ARRAY_VALUE'])?$v['ARRAY_VALUE']:$v);
-                }
-            }
-            $result = $newResult;
-        }
-
         if ($this->cacheTimeout && $this->cache) {
             $this->cache->set($key, $result, $this->cacheTimeout);
         }
@@ -105,6 +96,32 @@ class PDOAdapter implements DbInterface
         $this->cacheTimeout = false;
 
         return $result;
+    }
+
+
+    private function formatArrayBlocks($sql, $result, $multi = false)
+    {
+
+        
+        if ($sql && (strstr($sql, 'ARRAY_KEY') === false && strstr($sql, 'ARRAY_VALUE') === false)) return $result;
+
+        if (!$multi) $result = array($result);
+
+        $newRresult = array();
+        foreach ($result as $k => $v){
+            $arrayKey = (isset($v['ARRAY_KEY'])?$v['ARRAY_KEY']:$k);
+            if (isset($v['ARRAY_VALUE'])){
+                $v = $v['ARRAY_VALUE'];
+            }
+            $newRresult[$arrayKey] = $v;
+        }        
+        $result = $newRresult;
+
+
+        if (!$multi) return $result[0];
+
+        return $result;
+
     }
 
 
@@ -126,7 +143,6 @@ class PDOAdapter implements DbInterface
         $values = implode(', ', $set['values']);
 
         $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$values})";
-        // var_dump($sql);
         $stmt = $this->db->prepare($sql);
         foreach ($set['binds'] as $key => $value) {
 
@@ -158,6 +174,7 @@ class PDOAdapter implements DbInterface
 
     public function func($mysqlFunction)
     {
+        // or maybe another variant 'date ' => (object)'NOW()'
         $obj = new stdClass;
         $obj->mysqlFunction = $mysqlFunction;
         return $obj;
@@ -172,6 +189,13 @@ class PDOAdapter implements DbInterface
 //    {
 //        return date('Y-m-d H:i:s', ($interval?strtotime($interval):time()));
 //    }
+
+    // beta
+    public function fetch()
+    {
+        return $this->formatArrayBlocks(false,$this->lastStmt->fetch(),false);  
+    }
+
 
 
 }

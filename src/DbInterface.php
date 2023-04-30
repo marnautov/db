@@ -6,14 +6,14 @@ namespace Amxm\Db;
 interface DbInterface
 {
 
-    function row($sql, $vars);
+    function row(string $sql, array $vars);
 
-    function rows($sql, $vars);
+    function rows(string $sql, array $vars);
 
-    function col($sql, $vars);
+    function col(string $sql, array $vars);
 
-    function insert($table, $data);
+    function insert(string $table, array $data);
 
-    function update($table, $data, $vars);
+    function update(string $table, array $data, array $vars);
 
 }
