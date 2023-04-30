@@ -14,6 +14,6 @@ interface DbInterface
 
     function insert(string $table, array $data);
 
-    function update(string $table, array $data, array $vars);
+    function update(string $table, array $data, string $where, array $vars);
 
 }

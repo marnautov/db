@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.2 (+fetch)
+ * version 0.3
  */
 class PDOAdapter implements DbInterface
 {
@@ -132,7 +132,7 @@ class PDOAdapter implements DbInterface
         foreach ($data as $key => $value) {
             $set['columns'][] = $key;
             if (is_object($value) && property_exists($value, 'mysqlFunction')) {
-                $set['values'][] = $key;
+                $set['values'][] = $value->mysqlFunction;
             } else {
                 $set['values'][] = ':' . $key;
                 $set['binds'][$key] = $value;
@@ -145,7 +145,6 @@ class PDOAdapter implements DbInterface
         $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$values})";
         $stmt = $this->db->prepare($sql);
         foreach ($set['binds'] as $key => $value) {
-
             $stmt->bindValue(":$key", $value);
         }
         $r = $stmt->execute();
@@ -155,27 +154,29 @@ class PDOAdapter implements DbInterface
         return $this->db->lastInsertId();
     }
 
-    public function update($table, $data, $vars)
-    {
-        $set = [];
-        foreach ($data as $key => $value) {
-            $set[] = "$key=:$key";
+
+    public function update ($table, $data, $where = null, $vars = array()) {
+
+        $set = array();
+        foreach($data as $column => $value) {
+            if (is_object($value) && property_exists($value, 'mysqlFunction')) {
+                $set[] = $column . '=' . $value->mysqlFunction;
+                unset($data[$column]);
+            } else {
+                $set[] = $column . '=?';
+            } 
         }
-        $set = implode(', ', $set);
-        $sql = "UPDATE {$table} SET {$set} WHERE {$vars[0]}";
+        $sql = 'UPDATE ' . $table . ' SET ' . implode(',', $set) . ($where?' WHERE ' . $where:'');
         $stmt = $this->db->prepare($sql);
-        foreach ($data as $key => $value) {
-            $stmt->bindValue(":$key", $value);
-        }
-        $stmt->execute();
+        $stmt->execute(array_merge(array_values($data), $vars));
         return $stmt->rowCount();
-    }
+      }
 
 
     public function func($mysqlFunction)
     {
         // or maybe another variant 'date ' => (object)'NOW()'
-        $obj = new stdClass;
+        $obj = new \stdClass;
         $obj->mysqlFunction = $mysqlFunction;
         return $obj;
     }
