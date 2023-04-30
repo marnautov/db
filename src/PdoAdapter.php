@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.31
+ * version 0.4.0
  */
 class PDOAdapter implements DbInterface
 {
@@ -102,23 +102,24 @@ class PDOAdapter implements DbInterface
     private function formatArrayBlocks($sql, $result, $multi = false)
     {
 
-        
         if ($sql && (strstr($sql, 'ARRAY_KEY') === false && strstr($sql, 'ARRAY_VALUE') === false)) return $result;
 
-        if (!$multi) $result = array($result);
-
-        $newRresult = array();
-        foreach ($result as $k => $v){
-            $arrayKey = (isset($v['ARRAY_KEY'])?$v['ARRAY_KEY']:$k);
-            if (isset($v['ARRAY_VALUE'])){
-                $v = $v['ARRAY_VALUE'];
+        if ($multi){
+            $newRresult = array();
+            foreach ($result as $k => $v){
+                if (isset($v['ARRAY_KEY'])){
+                    $k = $v['ARRAY_KEY'];
+                    unset($v['ARRAY_KEY']);
+                }
+                if (isset($v['ARRAY_VALUE'])){
+                    $v = $v['ARRAY_VALUE'];
+                }
+                $newRresult[$k] = $v;
             }
-            $newRresult[$arrayKey] = $v;
-        }        
-        $result = $newRresult;
-
-
-        if (!$multi) return $result[0];
+            $result = $newRresult;
+        } else {
+            if (isset($v['ARRAY_VALUE'])) $result = $v['ARRAY_VALUE'];
+        }
 
         return $result;
 

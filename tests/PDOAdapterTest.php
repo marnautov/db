@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Amxm\Db\PDOAdapter;
 
-class DbAdapterTest extends TestCase
+class PDOAdapterTest extends TestCase
 {
     private $db;
     private $lastInsertId;
@@ -12,6 +12,8 @@ class DbAdapterTest extends TestCase
     {
         $pdo = new PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
         $this->db = new PDOAdapter($pdo);
+
+
 
     }
 
@@ -58,12 +60,17 @@ class DbAdapterTest extends TestCase
         $rows = $this->db->rows("SELECT id FROM tests WHERE 1");
         $this->assertEquals($rows[1]['id'], $this->lastInsertId);
 
-
+      
         $rows = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE 1");
         $this->assertEquals($rows[$this->lastInsertId], 'hello');
+ 
 
         $row = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE id=?", [$this->lastInsertId]);
         $this->assertEquals($row[$this->lastInsertId], 'hello');
+
+
+        //$rows = $this->db->rows("SELECT *,id as ARRAY_KEY FROM tests WHERE 1");
+
 
         $rows = array();
         $this->db->query("SELECT * from tests WHERE status=?",['active']);
