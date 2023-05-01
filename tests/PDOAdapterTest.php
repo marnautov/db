@@ -13,8 +13,6 @@ class PDOAdapterTest extends TestCase
         $pdo = new PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
         $this->db = new PDOAdapter($pdo);
 
-
-
     }
 
 
@@ -65,11 +63,27 @@ class PDOAdapterTest extends TestCase
         $this->assertEquals($rows[$this->lastInsertId], 'hello');
  
 
-        $row = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE id=?", [$this->lastInsertId]);
-        $this->assertEquals($row[$this->lastInsertId], 'hello');
+        $rows = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE id=?", [$this->lastInsertId]);
+        $this->assertEquals($rows[$this->lastInsertId], 'hello');
 
 
-        //$rows = $this->db->rows("SELECT *,id as ARRAY_KEY FROM tests WHERE 1");
+        /**
+         * ARRAY_KEY
+         */
+        $rows = $this->db->rows("SELECT *, id as ARRAY_KEY FROM tests WHERE 1");
+        $this->assertArrayNotHasKey('ARRAY_KEY', $rows[$this->lastInsertId]);
+
+        // fix v0.4.5
+        $row = $this->db->row("SELECT *, id as ARRAY_KEY FROM tests WHERE 1");
+        $this->assertArrayNotHasKey('ARRAY_KEY', $row);
+
+        $this->db->query("SELECT * from tests WHERE 1 LIMIT 1");
+        $row = $this->db->fetch();
+        $this->assertArrayNotHasKey('ARRAY_KEY', $row);
+
+
+        // $row = $this->db->row("SELECT * FROM tests WHERE date>?", [$this->db->func('NOW()')]);
+        // print_r ($row);
 
 
         $rows = array();
@@ -104,6 +118,10 @@ class PDOAdapterTest extends TestCase
         $this->assertEquals($rows[0]['title'], '2');
         $this->assertEquals($rows[1]['title'], '2');
 
+        $countAffected = $this->db->update('tests', ['date' => (object)'NOW()-INTERVAL 7 DAY'], 'id=?', [$this->lastInsertId]);
+        $this->assertEquals($countAffected, 1);
+
+
     }
 
 
@@ -130,11 +148,39 @@ class PDOAdapterTest extends TestCase
         $row = $this->db->row("SELECT * FROM tests WHERE id=?", [$insertId]);
         $this->assertEquals($row['title'], '2');
 
-       // print_r ($this->db->rows("SELECT * FROM tests"));
 
+        // since v0.4.5
+        $insertId = $this->db->insert('tests', [
+            'title' => (object)('MOD(1983,39)'),
+            'status' => 'active',
+            'date' => (object)'NOW()',
+            'date2' => (object)'NOW()+INTERVAL 1 DAY',
+        ]);
+        $this->assertGreaterThan(0, $insertId);
+
+        $row = $this->db->row("SELECT * FROM tests WHERE id=?", [$insertId]);
+        $this->assertEquals($row['title'], '33');
 
     }
 
+
+    public function testQueries(): void{
+
+        $this->insertSamples();
+
+        $this->db->query("DELETE FROM tests");
+        $count = $this->db->rowCount();
+        $this->assertEquals($count, 2);
+
+
+        $this->insertSamples();
+        $this->insertSamples();
+
+        $stmt = $this->db->query("DELETE FROM tests");
+        $count = $stmt->rowCount();
+        $this->assertEquals($count, 4);
+
+    }
 
 
  

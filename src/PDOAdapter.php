@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.4.4
+ * version 0.4.5
  */
 class PDOAdapter implements DbInterface
 {
@@ -41,6 +41,13 @@ class PDOAdapter implements DbInterface
     }
 
 
+    // since 0.4.5, only for queries now (where $this->lastStmt exist)
+    public function rowCount()
+    {
+        return (isset($this->lastStmt)?$this->lastStmt->rowCount():false);
+    }
+
+
     public function row(string $sql, array $vars = array())
     {
         return $this->execute($sql, $vars, 'FETCH_ASSOC');
@@ -66,22 +73,19 @@ class PDOAdapter implements DbInterface
             if ($result) return $result;
         }
 
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($vars);
+
         switch ($type) {
             case 'FETCH_ASSOC':
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute($vars);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $result = $this->formatArrayBlocks($sql, $result, false);
                 break;
             case 'FETCH_ALL_ASSOC':
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute($vars);
                 $result =  $stmt->fetchAll(PDO::FETCH_ASSOC);
                 $result = $this->formatArrayBlocks($sql, $result, true);
                 break;
             case 'FETCH_COLUMN':
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute($vars);
                 $result = $stmt->fetchColumn();
                 break;
             default:
@@ -119,6 +123,7 @@ class PDOAdapter implements DbInterface
             $result = $newRresult;
         } else {
             if (isset($result['ARRAY_VALUE'])) $result = $result['ARRAY_VALUE'];
+            if (isset($result['ARRAY_KEY'])) unset($result['ARRAY_KEY']); // There is no effect in a single row, but it is better to remove it.
         }
 
         return $result;
@@ -132,8 +137,8 @@ class PDOAdapter implements DbInterface
         $set = [];
         foreach ($data as $key => $value) {
             $set['columns'][] = $key;
-            if (is_object($value) && property_exists($value, 'mysqlFunction')) {
-                $set['values'][] = $value->mysqlFunction;
+            if (is_object($value) && property_exists($value, 'scalar')) {
+                $set['values'][] = $value->scalar;
             } else {
                 $set['values'][] = ':' . $key;
                 $set['binds'][$key] = $value;
@@ -160,8 +165,8 @@ class PDOAdapter implements DbInterface
 
         $set = array();
         foreach($data as $column => $value) {
-            if (is_object($value) && property_exists($value, 'mysqlFunction')) {
-                $set[] = $column . '=' . $value->mysqlFunction;
+            if (is_object($value) && property_exists($value, 'scalar')) {
+                $set[] = $column . '=' . $value->scalar;
                 unset($data[$column]);
             } else {
                 $set[] = $column . '=?';
@@ -177,9 +182,12 @@ class PDOAdapter implements DbInterface
     public function func($mysqlFunction)
     {
         // or maybe another variant 'date ' => (object)'NOW()'
-        $obj = new \stdClass;
-        $obj->mysqlFunction = $mysqlFunction;
-        return $obj;
+        // https://www.php.net/manual/ru/language.types.object.php#language.types.object.casting
+        // since v0.4.5
+        return (object)$mysqlFunction;
+        // $obj = new \stdClass;
+        // $obj->mysqlFunction = $mysqlFunction;
+        // return $obj;
     }
 
     public function now()
