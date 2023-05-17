@@ -164,6 +164,68 @@ class PDOAdapterTest extends TestCase
     }
 
 
+    public function testInsertMany()
+    {
+
+        $dataSet = [];
+        for ($n=1;$n<10;$n++){
+            $dataSet[]=[
+                'title' => 'My title number '.$n,
+                'status' => ($n%2?'active':'inactive'),
+                'date' => $this->db->now(),
+                'date2' => (object)"NOW()+INTERVAL {$n} DAY",
+            ];
+        }
+
+        $rowCount = $this->db->insertMany('tests', $dataSet);
+        
+        $this->assertEquals($rowCount, count($dataSet));
+
+    }
+
+
+    public function testInsertManyPerfomance()
+    {
+        $dataSet = [];
+        for ($n=1;$n<100;$n++){
+            $dataSet[]=[
+                'title' => 'My title number '.$n,
+                'status' => ($n%2?'active':'inactive'),
+                'date' => $this->db->now(),
+                'date2' => (object)"NOW()+INTERVAL {$n} DAY",
+            ];
+        }
+
+        // multiInsert
+        $timeStart = microtime(true);
+        $rowCount = $this->db->insertMany('tests', $dataSet);
+        $elapsedTime = microtime(true)-$timeStart;
+        
+        $this->assertEquals($rowCount, count($dataSet));
+
+        printf("insertMany() took to execute: %.4f seconds\n", $elapsedTime);
+        $this->assertLessThanOrEqual(1, $elapsedTime, sprintf("insertMany() took too long to execute: %.2f seconds", $elapsedTime));
+
+        $this->db->query("TRUNCATE TABLE tests");
+
+        // ordinary
+        $timeStart = microtime(true);
+        $rowCount = 0;
+        foreach($dataSet    as $ins){
+            $inserId = $this->db->insert('tests', $ins);
+            if ($inserId) $rowCount++;
+        }
+        $elapsedTime = microtime(true)-$timeStart;
+        printf("multi insert() took to execute: %.4f seconds\n", $elapsedTime);
+
+        $this->assertEquals($rowCount, count($dataSet));
+ 
+    }
+
+
+
+
+
     public function testQueries(): void{
 
         $this->insertSamples();

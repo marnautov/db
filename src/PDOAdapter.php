@@ -11,7 +11,7 @@ class PDOAdapter implements DbInterface
 {
 
     private $db;
-    private $cache;
+    private object $cache;
     private $cacheTimeout;
     private $lastStmt;
 
@@ -159,6 +159,56 @@ class PDOAdapter implements DbInterface
         }
         return $this->db->lastInsertId();
     }
+
+
+    public function insertMany($table, $dataSet)
+	{
+		$set = [];
+		
+		$columns = [];
+		$binds = [];
+		$rowCount = 0;
+		
+		// Build the SQL statement and bind parameters for each row of data
+		
+		foreach ($dataSet as $data) {
+			$set['values'] = [];
+			foreach ($data as $key => $value) {
+				if ($rowCount == 0) {
+					$set['columns'][] = $key;
+				}
+				if (is_object($value) && property_exists($value, 'scalar')) {
+					$set['values'][] = $value->scalar;
+				} else {
+					$set['values'][] = ':' . $key . '_' . $rowCount;
+					$binds[$key . '_' . $rowCount] = $value;
+				}
+			}
+			$values[] = '(' . implode(', ', $set['values']) . ')';
+			$rowCount++;
+		}
+
+		
+		$columns = implode(',', $set['columns']);
+		$values = implode(', ', $values);
+		$sql = "INSERT INTO {$table} ({$columns}) VALUES {$values}";
+        // Prepare and execute the SQL statement with the bound parameters
+		$stmt = $this->db->prepare($sql);
+		foreach ($binds as $key => $value) {
+			$stmt->bindValue(":$key", $value);
+		}
+		$r = $stmt->execute();
+		
+		// If the insert was successful, return the number of rows inserted
+		if ($r) {
+			return $rowCount;
+		} else {
+			var_dump($stmt->errorInfo()); // Debug statement: display the error message and code
+			return false;
+		}
+
+    }
+
 
 
     public function update ($table, $data, $where = null, $vars = array()) {
