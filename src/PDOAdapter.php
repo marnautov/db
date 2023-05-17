@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.4.5
+ * version 0.5
  */
 class PDOAdapter implements DbInterface
 {
