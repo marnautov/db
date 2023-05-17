@@ -12,7 +12,6 @@ class PDOAdapterTest extends TestCase
     {
         $pdo = new PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
         $this->db = new PDOAdapter($pdo);
-
     }
 
 
@@ -32,7 +31,6 @@ class PDOAdapterTest extends TestCase
             'date' => $this->db->now(),
             'date2' => $this->db->now(),
         ]);
-
     }
 
 
@@ -58,10 +56,10 @@ class PDOAdapterTest extends TestCase
         $rows = $this->db->rows("SELECT id FROM tests WHERE 1");
         $this->assertEquals($rows[1]['id'], $this->lastInsertId);
 
-      
+
         $rows = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE 1");
         $this->assertEquals($rows[$this->lastInsertId], 'hello');
- 
+
 
         $rows = $this->db->rows("SELECT id as ARRAY_KEY, title as ARRAY_VALUE FROM tests WHERE id=?", [$this->lastInsertId]);
         $this->assertEquals($rows[$this->lastInsertId], 'hello');
@@ -87,15 +85,14 @@ class PDOAdapterTest extends TestCase
 
 
         $rows = array();
-        $this->db->query("SELECT * from tests WHERE status=?",['active']);
-        while($row = $this->db->fetch()){
+        $this->db->query("SELECT * from tests WHERE status=?", ['active']);
+        while ($row = $this->db->fetch()) {
             $row['info'] = $this->db->row("SELECT NOW() as date,'love'");
             $rows[] = $row;
         }
         $this->assertEquals(count($rows), 2);
 
         $this->assertEquals($rows[1]['info']['love'], 'love');
-
     }
 
 
@@ -104,7 +101,7 @@ class PDOAdapterTest extends TestCase
 
         $this->insertSamples();
 
-        $countAffected = $this->db->update('tests', ['title'=>'New Title'], 'status=?', ['active']);
+        $countAffected = $this->db->update('tests', ['title' => 'New Title'], 'status=?', ['active']);
         $this->assertEquals($countAffected, 2);
 
         $rows = $this->db->rows("SELECT * FROM tests");
@@ -120,8 +117,6 @@ class PDOAdapterTest extends TestCase
 
         $countAffected = $this->db->update('tests', ['date' => (object)'NOW()-INTERVAL 7 DAY'], 'id=?', [$this->lastInsertId]);
         $this->assertEquals($countAffected, 1);
-
-
     }
 
 
@@ -160,37 +155,117 @@ class PDOAdapterTest extends TestCase
 
         $row = $this->db->row("SELECT * FROM tests WHERE id=?", [$insertId]);
         $this->assertEquals($row['title'], '33');
+    }
+
+
+    public function testInsertIgnore()
+    {
+
+
+        $insertId = $this->db->insert('tests', [
+            'id'    =>  1,
+            'title' => 'Hello world',
+            'status' => 'active',
+            'date' => (object)'NOW()',
+            'date2' => (object)'NOW()+INTERVAL 1 DAY',
+        ]);
+        $this->assertGreaterThan(0, $insertId);
+
+        $insertId = $this->db->insert('tests', [
+            'id'    =>  1,
+            'title' => 'Hello world Ignore',
+            'status' => 'active',
+            'date' => (object)'NOW()',
+            'date2' => (object)'NOW()+INTERVAL 1 DAY',
+        ], ['ignore' => true]);
+
+
+        $this->assertEquals(0, $insertId);
+
+        $insertId = $this->db->insert('tests', [
+            'id'    =>  100,
+            'title' => 'Hello world Ignore',
+            'status' => 'active',
+            'date' => (object)'NOW()',
+            'date2' => (object)'NOW()+INTERVAL 1 DAY',
+        ], ['ignore' => true]);
+
+        // check if insert ignore return insertId
+        $this->assertEquals(100, $insertId);
 
     }
 
 
-    public function testInsertMany()
+
+    public function testInsertManyIgnore()
     {
 
         $dataSet = [];
-        for ($n=1;$n<10;$n++){
-            $dataSet[]=[
-                'title' => 'My title number '.$n,
-                'status' => ($n%2?'active':'inactive'),
+        for ($n = 1; $n < 10; $n++) {
+            $dataSet[] = [
+                'id'    =>  $n,
+                'title' => 'My title number ' . $n,
+                'status' => ($n % 2 ? 'active' : 'inactive'),
                 'date' => $this->db->now(),
                 'date2' => (object)"NOW()+INTERVAL {$n} DAY",
             ];
         }
 
         $rowCount = $this->db->insertMany('tests', $dataSet);
-        
         $this->assertEquals($rowCount, count($dataSet));
 
+
+        $rowCount = $this->db->insertMany('tests', $dataSet, ['ignore'=>true]);
+        $this->assertEquals($rowCount, 0);
+
+
+        for ($n = 1; $n <= 5; $n++) {
+            $dataSet[] = [
+                'id'    =>  $n*100,
+                'title' => 'My title number ' . $n,
+                'status' => ($n % 2 ? 'active' : 'inactive'),
+                'date' => $this->db->now(),
+                'date2' => (object)"NOW()+INTERVAL {$n} DAY",
+            ];
+        }
+        $rowCount = $this->db->insertMany('tests', $dataSet, ['ignore'=>true]);
+        $this->assertEquals($rowCount, 5);
+
+        $count = $this->db->col("SELECT count(*) FROM tests");
+        $this->assertEquals($count, 14);
+
+    }
+
+
+ 
+
+
+    public function testInsertMany()
+    {
+
+        $dataSet = [];
+        for ($n = 1; $n < 10; $n++) {
+            $dataSet[] = [
+                'title' => 'My title number ' . $n,
+                'status' => ($n % 2 ? 'active' : 'inactive'),
+                'date' => $this->db->now(),
+                'date2' => (object)"NOW()+INTERVAL {$n} DAY",
+            ];
+        }
+
+        $rowCount = $this->db->insertMany('tests', $dataSet);
+
+        $this->assertEquals($rowCount, count($dataSet));
     }
 
 
     public function testInsertManyPerfomance()
     {
         $dataSet = [];
-        for ($n=1;$n<100;$n++){
-            $dataSet[]=[
-                'title' => 'My title number '.$n,
-                'status' => ($n%2?'active':'inactive'),
+        for ($n = 1; $n < 100; $n++) {
+            $dataSet[] = [
+                'title' => 'My title number ' . $n,
+                'status' => ($n % 2 ? 'active' : 'inactive'),
                 'date' => $this->db->now(),
                 'date2' => (object)"NOW()+INTERVAL {$n} DAY",
             ];
@@ -199,11 +274,11 @@ class PDOAdapterTest extends TestCase
         // multiInsert
         $timeStart = microtime(true);
         $rowCount = $this->db->insertMany('tests', $dataSet);
-        $elapsedTime = microtime(true)-$timeStart;
-        
+        $elapsedTime = microtime(true) - $timeStart;
+
         $this->assertEquals($rowCount, count($dataSet));
 
-        printf("insertMany() took to execute: %.4f seconds\n", $elapsedTime);
+        //printf("insertMany() took to execute: %.4f seconds\n", $elapsedTime);
         $this->assertLessThanOrEqual(1, $elapsedTime, sprintf("insertMany() took too long to execute: %.2f seconds", $elapsedTime));
 
         $this->db->query("TRUNCATE TABLE tests");
@@ -211,22 +286,22 @@ class PDOAdapterTest extends TestCase
         // ordinary
         $timeStart = microtime(true);
         $rowCount = 0;
-        foreach($dataSet    as $ins){
+        foreach ($dataSet    as $ins) {
             $inserId = $this->db->insert('tests', $ins);
             if ($inserId) $rowCount++;
         }
-        $elapsedTime = microtime(true)-$timeStart;
-        printf("multi insert() took to execute: %.4f seconds\n", $elapsedTime);
+        $elapsedTime = microtime(true) - $timeStart;
+        //printf("multi insert() took to execute: %.4f seconds\n", $elapsedTime);
 
         $this->assertEquals($rowCount, count($dataSet));
- 
     }
 
 
 
 
 
-    public function testQueries(): void{
+    public function testQueries(): void
+    {
 
         $this->insertSamples();
 
@@ -241,11 +316,10 @@ class PDOAdapterTest extends TestCase
         $stmt = $this->db->query("DELETE FROM tests");
         $count = $stmt->rowCount();
         $this->assertEquals($count, 4);
-
     }
 
 
- 
+
 
 
     protected function tearDown(): void

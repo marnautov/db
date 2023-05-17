@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.5
+ * version 0.51
  */
 class PDOAdapter implements DbInterface
 {
@@ -131,7 +131,7 @@ class PDOAdapter implements DbInterface
     }
 
 
-    public function insert($table, $data)
+    public function insert($table, $data, $options = [])
     {
 
         $set = [];
@@ -148,7 +148,7 @@ class PDOAdapter implements DbInterface
         $columns = implode(',', $set['columns']);
         $values = implode(', ', $set['values']);
 
-        $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$values})";
+        $sql = "INSERT".(isset($options['ignore'])?" IGNORE":"")." INTO {$table} ({$columns}) VALUES ({$values})";
         $stmt = $this->db->prepare($sql);
         foreach ($set['binds'] as $key => $value) {
             $stmt->bindValue(":$key", $value);
@@ -161,7 +161,15 @@ class PDOAdapter implements DbInterface
     }
 
 
-    public function insertMany($table, $dataSet)
+    // alias to insert with ignore
+    public function insertIgnore($table, $data)
+    {
+        // @todo: merge options
+        $this->insert($table, $data, ['ignore'=>true]);
+    }
+
+
+    public function insertMany($table, $dataSet, $options = [])
 	{
 		$set = [];
 		
@@ -191,14 +199,16 @@ class PDOAdapter implements DbInterface
 		
 		$columns = implode(',', $set['columns']);
 		$values = implode(', ', $values);
-		$sql = "INSERT INTO {$table} ({$columns}) VALUES {$values}";
+		$sql = "INSERT".(isset($options['ignore'])?" IGNORE":"")." INTO {$table} ({$columns}) VALUES {$values}";
         // Prepare and execute the SQL statement with the bound parameters
 		$stmt = $this->db->prepare($sql);
 		foreach ($binds as $key => $value) {
 			$stmt->bindValue(":$key", $value);
 		}
 		$r = $stmt->execute();
-		
+
+        $rowCount = $stmt->rowCount();
+
 		// If the insert was successful, return the number of rows inserted
 		if ($r) {
 			return $rowCount;
