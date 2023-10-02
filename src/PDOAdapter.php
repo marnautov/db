@@ -5,7 +5,7 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.51
+ * version 0.56
  */
 class PDOAdapter implements DbInterface
 {
@@ -14,6 +14,8 @@ class PDOAdapter implements DbInterface
     private object $cache;
     private $cacheTimeout;
     private $lastStmt;
+
+    private $listener;
 
     public function __construct(PDO $db, $cache = false)
     {
@@ -29,11 +31,17 @@ class PDOAdapter implements DbInterface
         return $this;
     }
 
+    public function listen($callback)
+    {
+        $this->listener = $callback;
+    }
+
 
     public function query(string $sql, array $vars = array())
     {
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($vars);
+        //$stmt->execute($vars);
+        $this->executeStatement($stmt, $vars);
 
         $this->lastStmt = $stmt;
 
@@ -64,6 +72,21 @@ class PDOAdapter implements DbInterface
     }
 
 
+
+    private function executeStatement(&$stmt, $vars = null, $binds = null){
+
+        $timeStart = microtime(true);
+
+        $r = $stmt->execute($vars);
+
+        if (isset($this->listener) && is_callable($this->listener)) {
+            call_user_func($this->listener, ['sql'=>$stmt->queryString, 'bindings'=> ($vars??$binds), 'time'=> round(microtime(true)-$timeStart, 5)]);
+        }
+
+        return $r;
+    }
+
+
     private function execute($sql, $vars, $type)
     {
 
@@ -73,8 +96,11 @@ class PDOAdapter implements DbInterface
             if ($result) return $result;
         }
 
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($vars);
+        //$stmt->execute($vars);
+        $this->executeStatement($stmt, $vars);
+
 
         switch ($type) {
             case 'FETCH_ASSOC':
@@ -153,7 +179,9 @@ class PDOAdapter implements DbInterface
         foreach ($set['binds'] as $key => $value) {
             $stmt->bindValue(":$key", $value);
         }
-        $r = $stmt->execute();
+        // $r = $stmt->execute();
+        $r = $this->executeStatement($stmt, null, $set['binds']);
+
         if ($r === false) {
             var_dump($stmt->errorInfo()); // Debug statement: display the error message and code
         }
@@ -205,7 +233,8 @@ class PDOAdapter implements DbInterface
 		foreach ($binds as $key => $value) {
 			$stmt->bindValue(":$key", $value);
 		}
-		$r = $stmt->execute();
+		//$r = $stmt->execute();
+        $r = $this->executeStatement($stmt, null, $binds);
 
         $rowCount = $stmt->rowCount();
 
@@ -234,7 +263,8 @@ class PDOAdapter implements DbInterface
         }
         $sql = 'UPDATE ' . $table . ' SET ' . implode(',', $set) . ($where?' WHERE ' . $where:'');
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(array_merge(array_values($data), $vars));
+        //$stmt->execute(array_merge(array_values($data), $vars));
+        $this->executeStatement($stmt, array_merge(array_values($data), $vars));
         return $stmt->rowCount();
       }
 
@@ -266,6 +296,11 @@ class PDOAdapter implements DbInterface
         return $this->formatArrayBlocks(false,$this->lastStmt->fetch(),false);  
     }
 
+
+    public function quote($string)
+    {
+        return $this->db->quote($string);
+    }
 
 
 }

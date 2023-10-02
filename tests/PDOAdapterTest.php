@@ -12,6 +12,11 @@ class PDOAdapterTest extends TestCase
     {
         $pdo = new PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
         $this->db = new PDOAdapter($pdo);
+
+        // $this->db->listen(function($queryInfo){
+        //     print_r ($queryInfo);
+        // });
+
     }
 
 
@@ -193,6 +198,7 @@ class PDOAdapterTest extends TestCase
         // check if insert ignore return insertId
         $this->assertEquals(100, $insertId);
 
+
     }
 
 
@@ -318,6 +324,30 @@ class PDOAdapterTest extends TestCase
         $this->assertEquals($count, 4);
     }
 
+
+    public function testListen()
+    {
+
+        $this->db->listen(function($queryInfo){
+            print_r ($queryInfo);
+        });
+
+        $count = $this->db->col("SELECT count(*) FROM tests WHERE id>=?", [1]);
+        $this->assertEquals($count, 0);
+
+    }
+
+
+    public function testQuote()
+    {
+
+
+        $this->insertSamples();
+        $text = "don't give up";
+        $rows = $this->db->rows("SELECT * FROM tests WHERE title LIKE (".$this->db->quote($text).")");
+        print_r($rows);
+
+    }
 
 
 
