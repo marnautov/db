@@ -343,9 +343,22 @@ class PDOAdapterTest extends TestCase
 
 
         $this->insertSamples();
+
         $text = "don't give up";
+
+        $this->db->insert('tests', [
+            'title' => $text,
+            'status' => 'active',
+            'date' => $this->db->now(),
+            'date2' => $this->db->now(),
+        ]);
+
         $rows = $this->db->rows("SELECT * FROM tests WHERE title LIKE (".$this->db->quote($text).")");
-        print_r($rows);
+        $this->assertEquals(count($rows), 1);
+
+
+        $this->db->query("SELECT NOWT()");
+
 
     }
 

@@ -1,6 +1,8 @@
 <?php
 
 namespace Amxm\Db;
+
+use Exception;
 use \PDO;
 
 /**
@@ -41,7 +43,15 @@ class PDOAdapter implements DbInterface
     {
         $stmt = $this->db->prepare($sql);
         //$stmt->execute($vars);
+
         $this->executeStatement($stmt, $vars);
+
+        // try {
+        //     $this->executeStatement($stmt, $vars);
+        // } catch (Exception $e) {
+        //     throw new Exception("SQL ERROR: {$sql}");
+        // }
+        
 
         $this->lastStmt = $stmt;
 
