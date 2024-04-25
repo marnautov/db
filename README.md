@@ -51,8 +51,23 @@ Inserts a row into the given table with the given data and returns the last inse
             'created_at' => $db->func('NOW()'),
         ]);
 
-**update($table, $data, $vars)** 
+**insertIgnore($table, $data)**
+
+Alias for $db->insert($table, $data, ['ignore' => true]);
+
+**replace($table, $data)**
+
+Alias for $db->insert($table, $data, ['replace' => true]);
+
+
+**update($table, $data, $where, $vars)** 
 Updates a row in the given table with the given data and variables and returns the number of rows affected.
+
+    $db->update('articles', [
+            'status' => 'BAD',
+            'updated_at' => $db->now()
+        ], 'id=?', [5]);
+
 
 **func($mysqlFunction)** 
 Returns an object that represents a MySQL function to be used in a query.

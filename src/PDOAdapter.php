@@ -27,6 +27,11 @@ class PDOAdapter implements DbInterface
         $this->cacheTimeout = false;
     }
 
+    function setCacheAdapter($cache)
+    {
+        $this->cache = $cache;
+    }
+
     public function cache($timeout)
     {
         $this->cacheTimeout = intval($timeout);
@@ -184,7 +189,7 @@ class PDOAdapter implements DbInterface
         $columns = implode(',', $set['columns']);
         $values = implode(', ', $set['values']);
 
-        $sql = "INSERT".(isset($options['ignore'])?" IGNORE":"")." INTO {$table} ({$columns}) VALUES ({$values})";
+        $sql = (isset($options['replace'])?"REPLACE":"INSERT").(isset($options['ignore'])?" IGNORE":"")." INTO {$table} ({$columns}) VALUES ({$values})";
         $stmt = $this->db->prepare($sql);
         foreach ($set['binds'] as $key => $value) {
             $stmt->bindValue(":$key", $value);
@@ -204,6 +209,11 @@ class PDOAdapter implements DbInterface
     {
         // @todo: merge options
         $this->insert($table, $data, ['ignore'=>true]);
+    }
+
+    public function replace($table, $data)
+    {
+        $this->insert($table, $data, ['replace' => true]);
     }
 
 

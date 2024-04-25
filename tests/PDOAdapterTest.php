@@ -10,8 +10,22 @@ class PDOAdapterTest extends TestCase
 
     protected function setUp(): void
     {
-        $pdo = new PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
-        $this->db = new PDOAdapter($pdo);
+        // $pdo = new PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
+        // $this->db = new PDOAdapter($pdo);
+
+        $this->db = new \Amxm\Db\PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
+        
+        //$this->db->setCacheAdapter($cache);
+
+
+        $this->db->query("CREATE TABLE IF NOT EXISTS tests (
+            id INT AUTO_INCREMENT,
+            title VARCHAR(255),
+            status VARCHAR(50),
+            date TIMESTAMP,
+            date2 TIMESTAMP,
+            PRIMARY KEY (id)
+        );");
 
         // $this->db->listen(function($queryInfo){
         //     print_r ($queryInfo);
@@ -39,6 +53,14 @@ class PDOAdapterTest extends TestCase
     }
 
 
+    public function testPDOConstructor()
+    {
+
+        $db = new \Amxm\Db\PDO('mysql:dbname=test;host=127.0.0.1', 'root', '12');
+        $this->assertInstanceOf(\Amxm\Db\PDOAdapter::class, $db);
+
+    }
+
 
 
     public function testSelect()
@@ -49,7 +71,7 @@ class PDOAdapterTest extends TestCase
         $row = $this->db->row("SELECT * FROM tests WHERE 1 LIMIT 1");
         $this->assertIsArray($row);
 
-        $row = $this->db->row("SELECT * FROM tests WHERE id=? LIMIT 1", [$this->lastInsertId]);
+        $row = $this->db->rowx("SELECT * FROM tests WHERE id=? LIMIT 1", [$this->lastInsertId]);
         $this->assertIsArray($row);
 
         $resultId = $this->db->col("SELECT id FROM tests WHERE id=? LIMIT 1", [$this->lastInsertId]);
@@ -305,6 +327,36 @@ class PDOAdapterTest extends TestCase
 
 
 
+    public function testReplace()
+    {
+        $title = 'id999';
+        $this->db->insert('tests', [
+            'id'    =>  999,
+            'title' => $title,
+            'status' => 'active',
+            'date' => $this->db->now(),
+            'date2' => $this->db->now(),
+        ]);
+
+        $titleFromDb = $this->db->col("SELECT title FROM tests WHERE id=?",[999]);
+        $this->assertEquals($titleFromDb, $title);
+
+        $newTitle = 'id999v2';
+        $this->db->replace('tests', [
+            'id'    =>  999,
+            'title' => $newTitle,
+            'status' => 'active',
+            'date' => $this->db->now(),
+            'date2' => $this->db->now(),
+        ]);
+
+        $titleFromDb = $this->db->col("SELECT title FROM tests WHERE id=?",[999]);
+        $this->assertEquals($titleFromDb, $newTitle);
+
+    }
+
+
+
 
     public function testQueries(): void
     {
@@ -328,12 +380,17 @@ class PDOAdapterTest extends TestCase
     public function testListen()
     {
 
-        $this->db->listen(function($queryInfo){
-            print_r ($queryInfo);
+        $sql = 'SELECT 999';
+
+        $this->db->listen(function($queryInfo) use ($sql){
+            //print_r ($queryInfo);
+            $this->assertEquals($queryInfo['sql'], $sql);
         });
 
-        $count = $this->db->col("SELECT count(*) FROM tests WHERE id>=?", [1]);
-        $this->assertEquals($count, 0);
+        $count = $this->db->col($sql);
+        $this->assertEquals($count, 999);
+
+        $this->db->listen(null);
 
     }
 
@@ -357,7 +414,7 @@ class PDOAdapterTest extends TestCase
         $this->assertEquals(count($rows), 1);
 
 
-        $this->db->query("SELECT NOWT()");
+        $this->db->query("SELECT NOW()");
 
 
     }
