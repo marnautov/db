@@ -171,6 +171,77 @@ class PDOAdapter implements DbInterface
 
     }
 
+    /**
+     * INSERT ON DUPLICATE KEY UPDATE
+     */
+    public function insertUpdate($table, $data, $updateData = null, $options = [])
+    {
+
+        if ($updateData === null || $updateData === false) $updateData = $data;
+
+        $set = [];
+        foreach ($data as $key => $value) {
+            $set['columns'][] = $key;
+            if (is_object($value) && property_exists($value, 'scalar')) {
+                $set['values'][] = $value->scalar;
+            } else {
+                $set['values'][] = ':' . $key;
+                $set['binds'][$key] = $value;
+            }
+        }
+
+        // $updateData
+        $updSqlData = [];
+        $updSql = '';
+        foreach ($updateData as $key => $value) {
+            //$set['columns'][] = $key;
+            if (is_object($value) && property_exists($value, 'scalar')) {
+                //$set['upd-values'][] = $value->scalar;
+                $updSqlData[]="{$key} = ".$value->scalar;
+            } else {
+                //$set['upd-values'][] = ':upd' . $key;
+                $set['binds']['upd___'.$key] = $value;
+                $updSqlData[]="{$key} = :upd___" . $key;
+            }
+        }
+        $updSql = implode(', ', $updSqlData);
+        //var_dump($updSql);
+
+        $columns = implode(',', $set['columns']);
+        $values = implode(', ', $set['values']);
+
+        $sql = (isset($options['replace'])?"REPLACE":"INSERT").(isset($options['ignore'])?" IGNORE":"")." INTO {$table} ({$columns}) VALUES ({$values})";
+
+        $sql.=" ON DUPLICATE KEY UPDATE " . $updSql;
+
+        //var_dump($sql);
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($set['binds'] as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+            //var_dump("bind :$key \n");
+        }
+        // foreach ($set['upd-binds'] as $key => $value) {
+        //     $stmt->bindValue(":upd".$key, $value);
+        //     //var_dump("bind :upd{$key} \n");
+        // }
+
+        // $r = $stmt->execute();
+        $r = $this->executeStatement($stmt, null, $set['binds']);
+
+        //var_dump($this->db->lastInsertId());
+        //var_dump($stmt->rowCount());
+
+        if ($r === false) {
+            var_dump($stmt->errorInfo()); // Debug statement: display the error message and code
+        }
+
+        $this->lastStmt = $stmt;
+
+        return $this->db->lastInsertId($r);
+
+    }
+
 
     public function insert($table, $data, $options = [])
     {
@@ -257,6 +328,8 @@ class PDOAdapter implements DbInterface
         $r = $this->executeStatement($stmt, null, $binds);
 
         $rowCount = $stmt->rowCount();
+
+        $this->lastStmt = $stmt;
 
 		// If the insert was successful, return the number of rows inserted
 		if ($r) {

@@ -51,6 +51,19 @@ Inserts a row into the given table with the given data and returns the last inse
             'created_at' => $db->func('NOW()'),
         ]);
 
+
+**insertUpdate($table, $data, $updateData = null)**
+The insertUpdate method allows inserting a new row into the specified table with the provided data. In case of unique key conflicts (e.g., duplication of values in a unique index), the method updates the existing row in the table based on the provided data. If $updateData is not provided and a key conflict occurs, the data will be updated from $data.
+
+To determine whether data was updated or a new record was added, you can use $db->rowCount(): if it returns 1, a new record was added; if it returns 2, an existing record was updated. This behavior is consistent with PDO's default behavior.
+
+    $insertId = $db->insertUpdate('articles', [
+            'title' => 'All you need is love',
+            'status' => 'OK',
+            'date' => $db->now(),
+            'created_at' => $db->func('NOW()'),
+        ], ['updated_at' => $db->func('NOW()')]);
+
 **insertIgnore($table, $data)**
 
 Alias for $db->insert($table, $data, ['ignore' => true]);

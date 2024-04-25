@@ -1,7 +1,7 @@
 {
     "name": "amxm/db",
     "description": "DbAdapters",
-    "version": "0.52",
+    "version": "0.6",
     "license": "MIT",
     "keywords": ["database", "adapter", "db", "pdo", "mysql", "php"],
     "homepage": "https://github.com/amxm/db",

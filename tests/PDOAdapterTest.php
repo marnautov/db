@@ -62,6 +62,46 @@ class PDOAdapterTest extends TestCase
     }
 
 
+    public function testInsertUpdate()
+    {
+
+        $ins = [
+            'id'    =>  55,
+            'title' => 'hello start',
+            'status' => 'active',
+            'date' => $this->db->now(),
+            'date2' => $this->db->now(),
+        ];
+
+        $insertId = $this->db->insertUpdate('tests', $ins, ['status'=>'DUPLICATE']);
+        $this->assertEquals($insertId, 55);
+        $rowCount = $this->db->rowCount();
+        $this->assertEquals($rowCount, 1); // 1 = insert
+
+        $row = $this->db->row("SELECT * FROM tests WHERE id=55");
+        //print_r ($row);
+        $this->assertEquals($row['status'], 'active');
+
+        $this->db->insertUpdate('tests', $ins, ['status'=>'DUPLICATE', 'date2'=>(object)'NOW()+INTERVAL 1 YEAR']);
+        $row = $this->db->row("SELECT * FROM tests WHERE id=55");
+        //print_r ($row);
+        $this->assertEquals($row['status'], 'DUPLICATE');
+
+        $insertOrUpdatedId = $this->db->insertUpdate('tests', $ins, ['status'=>'D1', 'title'=>'T1']);
+        $rowCount = $this->db->rowCount();
+        $this->assertEquals($rowCount, 2); // 2  = updated
+
+        // var_dump($insertOrUpdatedId);
+        // var_dump($this->db->rowCount());
+
+        $row = $this->db->row("SELECT * FROM tests WHERE id=55");
+        //print_r ($row);
+        $this->assertEquals($row['status'], 'D1');
+        $this->assertEquals($row['title'], 'T1');
+
+
+    }
+
 
     public function testSelect()
     {
@@ -71,7 +111,7 @@ class PDOAdapterTest extends TestCase
         $row = $this->db->row("SELECT * FROM tests WHERE 1 LIMIT 1");
         $this->assertIsArray($row);
 
-        $row = $this->db->rowx("SELECT * FROM tests WHERE id=? LIMIT 1", [$this->lastInsertId]);
+        $row = $this->db->row("SELECT * FROM tests WHERE id=? LIMIT 1", [$this->lastInsertId]);
         $this->assertIsArray($row);
 
         $resultId = $this->db->col("SELECT id FROM tests WHERE id=? LIMIT 1", [$this->lastInsertId]);
@@ -282,8 +322,11 @@ class PDOAdapterTest extends TestCase
         }
 
         $rowCount = $this->db->insertMany('tests', $dataSet);
-
         $this->assertEquals($rowCount, count($dataSet));
+
+        $rowCountFromMethod = $this->db->rowCount();
+        $this->assertEquals($rowCountFromMethod, count($dataSet));
+
     }
 
 
