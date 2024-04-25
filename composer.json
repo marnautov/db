@@ -1,6 +1,14 @@
 {
     "name": "amxm/db",
     "description": "DbAdapters",
+    "version": "0.52",
+    "license": "MIT",
+    "keywords": ["database", "adapter", "db", "pdo", "mysql", "php"],
+    "homepage": "https://github.com/amxm/db",
+    "support": {
+        "email": "amxm@ya.ru",
+        "issues": "https://github.com/amxm/db/issues"
+    },
     "autoload": {
         "psr-4": {
             "Amxm\\Db\\": "src/"
