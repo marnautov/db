@@ -7,7 +7,6 @@ use \PDO;
 
 /**
  * Class PDOAdapter
- * version 0.56
  */
 class PDOAdapter implements DbInterface
 {
@@ -279,12 +278,12 @@ class PDOAdapter implements DbInterface
     public function insertIgnore($table, $data)
     {
         // @todo: merge options
-        $this->insert($table, $data, ['ignore'=>true]);
+        return $this->insert($table, $data, ['ignore'=>true]);
     }
 
     public function replace($table, $data)
     {
-        $this->insert($table, $data, ['replace' => true]);
+        return $this->insert($table, $data, ['replace' => true]);
     }
 
 

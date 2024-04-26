@@ -260,6 +260,17 @@ class PDOAdapterTest extends TestCase
         // check if insert ignore return insertId
         $this->assertEquals(100, $insertId);
 
+        $insertId = $this->db->insertIgnore('tests', [
+            'id'    =>  101,
+            'title' => 'Hello world Ignore',
+            'status' => 'active',
+            'date' => (object)'NOW()',
+            'date2' => (object)'NOW()+INTERVAL 1 DAY',
+        ], ['ignore' => true]);
+
+        // check if insert ignore return insertId
+        $this->assertEquals(101, $insertId);
+
 
     }
 
