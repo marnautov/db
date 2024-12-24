@@ -160,6 +160,14 @@ class PDOAdapterTest extends TestCase
         $this->assertEquals(count($rows), 2);
 
         $this->assertEquals($rows[1]['info']['love'], 'love');
+
+        // check single parameter in vars
+        $row = $this->db->row("SELECT * FROM tests WHERE id=?", $this->lastInsertId);
+        $this->assertArrayHasKey('id', $row);
+
+        //$rows = $this->db->rows("SELECT * FROM tests WHERE id>? LIMIT 1", 0);
+        //print_r($rows);
+
     }
 
 
@@ -184,6 +192,11 @@ class PDOAdapterTest extends TestCase
 
         $countAffected = $this->db->update('tests', ['date' => (object)'NOW()-INTERVAL 7 DAY'], 'id=?', [$this->lastInsertId]);
         $this->assertEquals($countAffected, 1);
+
+        // check single parameter in vars
+        $countAffected = $this->db->update('tests', ['title' => 'Newer Title'], 'status=?', 'active');
+        $this->assertEquals($countAffected, 2);
+
     }
 
 

@@ -69,19 +69,21 @@ class PDOAdapter implements DbInterface
         return (isset($this->lastStmt)?$this->lastStmt->rowCount():false);
     }
 
-
-    public function row(string $sql, array $vars = array())
+    public function row(string $sql, array|int|string|float|null $vars = array())
     {
+        if (!is_array($vars)) $vars = array($vars);
         return $this->execute($sql, $vars, 'FETCH_ASSOC');
     }
 
-    public function rows($sql, $vars = array())
+    public function rows(string $sql, array|int|string|float|null $vars = array())
     {
+        if (!is_array($vars)) $vars = array($vars);
         return $this->execute($sql, $vars, 'FETCH_ALL_ASSOC');
     }
 
-    public function col($sql, $vars = array())
+    public function col(string $sql, array|int|string|float|null $vars = array())
     {
+        if (!is_array($vars)) $vars = array($vars);
         return $this->execute($sql, $vars, 'FETCH_COLUMN');
     }
 
@@ -342,7 +344,9 @@ class PDOAdapter implements DbInterface
 
 
 
-    public function update ($table, $data, $where = null, $vars = array()) {
+    public function update (string $table, array $data, ?string $where = null, array|int|string|float|null $vars = array()) {
+
+        if (!is_array($vars)) $vars = array($vars);
 
         $set = array();
         foreach($data as $column => $value) {
