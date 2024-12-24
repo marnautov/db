@@ -61,6 +61,18 @@ class PDOAdapterTest extends TestCase
 
     }
 
+    // public function testSQLErrors()
+    // {
+
+    //     try {
+    //         $this->db->query("Ffsdf");
+    //     } catch(\Exception $e) {
+    //         die('ERROR: '.$e->getMessage())
+    //     }
+        
+    //     die("_");
+    // }
+
 
     public function testInsertUpdate()
     {
